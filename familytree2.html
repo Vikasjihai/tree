@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Micro Family Tree - No External Images</title>
+    <style>
+        /* Base Page Styling */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+            font-family: Arial, sans-serif;
+            padding: 20px 10px;
+            box-sizing: border-box;
+        }
+
+        /* Main Outer Box */
+        .tree-container {
+            border: 3px dashed #555555;
+            padding: 25px;
+            border-radius: 12px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            max-width: 100%;
+            overflow-x: auto;
+        }
+
+        /* Scroll Fix Wrapper */
+        .tree-scroll-wrapper {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 100%;
+        }
+
+        .tree-branch {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        /* CHHOTA KIYA: Peehdiyon ke beech ka vertical gap kam kiya */
+        .nodes-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            position: relative;
+            padding-top: 25px; 
+        }
+
+        .node-branch-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            padding: 0 6px; /* Side gaps ko bhi tight kiya */
+        }
+
+        /* CHHOTA KIYA: Connecting Lines ki height kam ki */
+        .node-branch-item::before {
+            content: '';
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 3px;
+            height: 25px;
+            background-color: #777777;
+        }
+
+        #treeMain > .node-branch-item::before,
+        #treeMain > .node-branch-item::after {
+            display: none !important;
+        }
+
+        .node-branch-item::after {
+            content: '';
+            position: absolute;
+            top: -25px;
+            height: 3px;
+            background-color: #777777;
+            width: 100%;
+        }
+        
+        .node-branch-item:first-child::after { left: 50%; width: 50%; }
+        .node-branch-item:last-child::after { right: 50%; width: 50%; }
+        .node-branch-item:only-child::after { display: none; }
+
+        .couple-box-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .couple-row {
+            display: flex;
+            gap: 6px;
+            background: #fdfdfd;
+            padding: 5px;
+            border: 1.5px solid #dcdcdc;
+            border-radius: 8px;
+            z-index: 5;
+        }
+
+        /* CHHOTA KIYA: Stem lines ko chhota kiya */
+        .stem-down {
+            width: 3px;
+            height: 25px;
+            background-color: #777777;
+            z-index: 1;
+        }
+
+        /* --- CHHOTA KIYA: BOX STYLING (3:4 Ratio micro size) --- */
+        .ratio-box {
+            width: 75px; 
+            aspect-ratio: 3 / 4;
+            border-radius: 6px;
+            padding: 4px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            background-color: #ffffff;
+        }
+
+        .male-box { border: 2px solid #1a73e8; background-color: #f0f6ff; }
+        .female-box { border: 2px solid #e91e63; background-color: #fff0f5; }
+
+        /* NO-IMAGE FIX: CSS Vector Avatar design jisme internet ki zaroorat nahi hai */
+        .image-container {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+            background-color: #e2e8f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* Agar local photo path real hai, toh wo iske andar dikhegi */
+        .image-box {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 3;
+        }
+
+        /* Agar photo load nahi hui, toh yeh CSS character piche se auto dikhega */
+        .avatar-fallback-head {
+            width: 40%;
+            height: 40%;
+            border-radius: 50%;
+            position: absolute;
+            top: 15%;
+        }
+        .avatar-fallback-body {
+            width: 75%;
+            height: 45%;
+            border-radius: 50% 50% 0 0;
+            position: absolute;
+            bottom: -5%;
+        }
+        
+        /* Gender Base Fallback Colors */
+        .male-box .avatar-fallback-head, .male-box .avatar-fallback-body { background-color: #93c5fd; }
+        .female-box .avatar-fallback-head, .female-box .avatar-fallback-body { background-color: #f9a8d4; }
+
+        /* CHHOTA KIYA: Text size ko micro kiya */
+        .profile-name {
+            font-size: 9px;
+            font-weight: bold;
+            margin-top: 2px;
+            text-align: center;
+            line-height: 1.1;
+            width: 100%;
+            white-space: normal;
+            word-wrap: break-word;
+        }
+        .male-box .profile-name { color: #1a73e8; }
+        .female-box .profile-name { color: #e91e63; }
+    </style>
+</head>
+<body>
+
+    <div class="tree-container">
+        <div class="tree-scroll-wrapper">
+            <div class="tree-branch" id="treeMain">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        const familyData = {
+          "name": "Parmeshwar Mehta",
+          "gender": "Male",
+          "image": "img/parmeshwar.jpg",
+          "children": [
+            {
+              "name": "Ramswaroop Prasad Mehta",
+              "gender": "Male",
+              "image": "img/ramswaroop.jpg",
+              "wife": {
+                "name": "Maya Devi",
+                "gender": "Female",
+                "image": "img/maya.jpg"
+              },
+              "children": [
+                {
+                  "name": "Hari Shankar Nonia",
+                  "gender": "Male",
+                  "image": "img/hari.jpg",
+                  "wife": {
+                    "name": "Parwati Devi",
+                    "gender": "Female",
+                    "image": "img/parwati.jpg"
+                  },
+                  "children": [
+                    {
+                      "name": "Ganesh",
+                      "gender": "Male",
+                      "image": "img/ganesh.jpg"
+                    },
+                    {
+                      "name": "Dinesh",
+                      "gender": "Male",
+                      "image": "img/dinesh.jpg"
+                    }
+                  ]
+                },
+                {
+                  "name": "Bhola Ramswaroop Nonia",
+                  "gender": "Male",
+                  "image": "img/bhola.jpg",
+                  "wife": {
+                    "name": "Lakshmi Devi",
+                    "gender": "Female",
+                    "image": "img/lakshmi.jpg"
+                  },
+                  "children": [
+                    {
+                      "name": "Rajesh Chauhan",
+                      "gender": "Male",
+                      "image": "img/rajesh.jpg",
+                      "wife": {
+                        "name": "Suhani Kumari",
+                        "gender": "Female",
+                        "image": "img/suhani.jpg"
+                      },
+                      "children": [
+                        {
+                          "name": "Rajesh Ka Beta",
+                          "gender": "Male",
+                          "image": "img/rajesh-beta.jpg"
+                        },
+                        {
+                          "name": "Rajesh Ki Beti",
+                          "gender": "Female",
+                          "image": "img/rajesh-beti.jpg"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "name": "Suresh Nonia",
+                  "gender": "Male",
+                  "image": "img/suresh.jpg",
+                  "wife": {
+                    "name": "Sita Devi",
+                    "gender": "Female",
+                    "image": "img/sita.jpg"
+                  },
+                  "children": [
+                    {
+                      "name": "Saurab Kumar",
+                      "gender": "Male",
+                      "image": "img/saurab.jpg"
+                    },
+                    {
+                      "name": "Shekhar Kumar",
+                      "gender": "Male",
+                      "image": "img/shekhar.jpg"
+                    }
+                  ]
+                },
+                {
+                  "name": "Bablu Nonia",
+                  "gender": "Male",
+                  "image": "img/bablu.jpg",
+                  "wife": {
+                    "name": "Radha Devi",
+                    "gender": "Female",
+                    "image": "img/radha.jpg"
+                  },
+                  "children": [
+                    {
+                      "name": "Gautam Kumar",
+                      "gender": "Male",
+                      "image": "img/gautam.jpg",
+                      "wife": {
+                        "name": "Shobha Devi",
+                        "gender": "Female",
+                        "image": "img/shobha.jpg"
+                      },
+                      "children": [
+                        {
+                          "name": "Gaurav Kumar",
+                          "gender": "Male",
+                          "image": "img/gaurav.jpg"
+                        },
+                        {
+                          "name": "Lakki Kumar",
+                          "gender": "Male",
+                          "image": "img/lakki.jpg"
+                        },
+                        {
+                          "name": "Khushi Kumari",
+                          "gender": "Female",
+                          "image": "img/khushi.jpg"
+                        }
+                      ]
+                    },
+                    {
+                      "name": "Vikram Chauhan",
+                      "gender": "Male",
+                      "image": "img/vikram.jpg",
+                      "wife": {
+                        "name": "Priyanka Kumari",
+                        "gender": "Female",
+                        "image": "img/priyanka.jpg"
+                      },
+                      "children": [
+                        {
+                          "name": "Priyanshi Kumari",
+                          "gender": "Female",
+                          "image": "img/priyanshi.jpg"
+                        }
+                      ]
+                    },
+                    {
+                      "name": "Vikas Kumar",
+                      "gender": "Male",
+                      "image": "img/vikas.jpg"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Doosra Beta Mehta",
+              "gender": "Male",
+              "image": "img/doosra.jpg",
+              "children": []
+            }
+          ]
+        };
+
+        // FIXED NO-IMAGE PIPELINE: Yeh pure CSS vectors ko bina internet ke display karega
+        function makeBox(person) {
+            const boxClass = person.gender === 'Male' ? 'male-box' : 'female-box';
+            
+            // Check if actual local image is provided
+            let imgTag = "";
+            if (person.image && person.image.trim() !== "") {
+                imgTag = `<img class="image-box" src="${person.image}" alt="${person.name}" onerror="this.style.display='none'">`;
+            }
+            
+            return `
+                <div class="ratio-box ${boxClass}">
+                    <div class="image-container">
+                        <div class="avatar-fallback-head"></div>
+                        <div class="avatar-fallback-body"></div>
+                        ${imgTag}
+                    </div>
+                    <div class="profile-name">${person.name}</div>
+                </div>
+            `;
+        }
+
+        function buildRenderTree(node) {
+            const hasKids = node.children && node.children.length > 0;
+            let html = `<div class="node-branch-item">`;
+            
+            html += `<div class="couple-box-wrapper">`;
+            html += `<div class="couple-row">`;
+            html += makeBox(node);
+            if(node.wife) {
+                html += makeBox(node.wife);
+            }
+            html += `</div>`; 
+            
+            if(hasKids) {
+                html += `<div class="stem-down"></div>`;
+            }
+            html += `</div>`; 
+
+            if(hasKids) {
+                html += `<div class="nodes-container">`;
+                node.children.forEach(child => {
+                    html += buildRenderTree(child);
+                });
+                html += `</div>`;
+            }
+            
+            html += `</div>`;
+            return html;
+        }
+
+        document.getElementById('treeMain').innerHTML = buildRenderTree(familyData);
+    </script>
+</body>
+</html>
