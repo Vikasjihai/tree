@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Family Tree - 100% Working Focus</title>
+    <style>
+        /* Base Page Styling */
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+            font-family: Arial, sans-serif;
+            padding: 20px 10px;
+            box-sizing: border-box;
+        }
+
+        /* --- CONTROLS PANEL --- */
+        .controls-panel {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+            position: sticky;
+            top: 10px;
+            z-index: 100;
+        }
+
+        .btn-ctrl {
+            background-color: #ffffff;
+            border: 2px solid #555555;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+        }
+
+        .btn-ctrl:hover {
+            background-color: #555555;
+            color: #ffffff;
+        }
+
+        /* Main Outer Box */
+        .tree-container {
+            border: 3px dashed #555555;
+            padding: 40px;
+            border-radius: 12px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 95vw;
+            height: 75vh;
+            overflow: auto;
+            position: relative;
+        }
+
+        /* Scroll Fix Wrapper */
+        .tree-scroll-wrapper {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 100px;
+            transform-origin: top center; 
+        }
+
+        .tree-branch {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        .nodes-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            position: relative;
+            padding-top: 35px; 
+        }
+
+        .node-branch-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            padding: 0 10px;
+        }
+
+        /* Connecting Lines */
+        .node-branch-item::before {
+            content: '';
+            position: absolute;
+            top: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 3px;
+            height: 35px;
+            background-color: #777777;
+        }
+
+        #treeMain > .node-branch-item::before,
+        #treeMain > .node-branch-item::after {
+            display: none !important;
+        }
+
+        .node-branch-item::after {
+            content: '';
+            position: absolute;
+            top: -35px;
+            height: 3px;
+            background-color: #777777;
+            width: 100%;
+        }
+        
+        .node-branch-item:first-child::after { left: 50%; width: 50%; }
+        .node-branch-item:last-child::after { right: 50%; width: 50%; }
+        .node-branch-item:only-child::after { display: none; }
+
+        .couple-box-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .couple-row {
+            display: flex;
+            gap: 10px; /* Base same gap */
+            background: #fdfdfd;
+            padding: 6px;
+            border: 1.5px solid #dcdcdc;
+            border-radius: 8px;
+            z-index: 5;
+            transition: gap 0.4s ease, padding 0.4s ease, border-color 0.4s ease;
+        }
+
+        .stem-down {
+            width: 3px;
+            height: 35px;
+            background-color: #777777;
+            z-index: 1;
+        }
+
+        /* --- STANDARD BOX STYLING --- */
+        .ratio-box {
+            width: 75px; 
+            aspect-ratio: 3 / 4;
+            border-radius: 6px;
+            padding: 4px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            background-color: #ffffff;
+            cursor: pointer;
+            transition: width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), border-color 0.4s ease, box-shadow 0.4s ease;
+        }
+
+        .male-box { border: 2px solid #1a73e8; background-color: #f0f6ff; }
+        .female-box { border: 2px solid #e91e63; background-color: #fff0f5; }
+
+        /* --- NON-OVERLAPPING HIGHLIGHT SYSTEM --- */
+        .row-focused-main {
+            gap: 14px !important; /* Spacing increases between husband and wife */
+            border-color: #e67e22 !important;
+            box-shadow: 0 4px 15px rgba(230, 126, 34, 0.2) !important;
+        }
+        .box-focused-main {
+            width: 90px !important;
+            border-color: #e67e22 !important;
+        }
+
+        .row-focused-child {
+            gap: 12px !important;
+        }
+        .box-focused-child {
+            width: 88px !important;
+        }
+
+        /* Offline CSS Avatar Shapes */
+        .image-container {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+            background-color: #e2e8f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .image-box {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 3;
+        }
+
+        .avatar-fallback-head { width: 40%; height: 40%; border-radius: 50%; position: absolute; top: 15%; }
+        .avatar-fallback-body { width: 75%; height: 45%; border-radius: 50% 50% 0 0; position: absolute; bottom: -5%; }
+        
+        .male-box .avatar-fallback-head, .male-box .avatar-fallback-body { background-color: #93c5fd; }
+        .female-box .avatar-fallback-head, .female-box .avatar-fallback-body { background-color: #f9a8d4; }
+
+        .profile-name {
+            font-size: 9px;
+            font-weight: bold;
+            margin-top: 2px;
+            text-align: center;
+            line-height: 1.1;
+            width: 100%;
+            white-space: normal;
+            word-wrap: break-word;
+        }
+        .box-focused-main .profile-name { font-size: 11px; }
+        .box-focused-child .profile-name { font-size: 10px; }
+
+        .male-box .profile-name { color: #1a73e8; }
+        .female-box .profile-name { color: #e91e63; }
+
+        .toggle-btn {
+            position: absolute;
+            bottom: -8px;
+            background-color: #555555;
+            color: #ffffff;
+            border: none;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            font-size: 10px;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .collapsed-children {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="controls-panel">
+        <button class="btn-ctrl" onclick="applyHighlightSystem('Bablu Nonia')" style="background-color: #e67e22; color: #fff; border-color: #d35400;">Focus Bablu Nonia</button>
+        <button class="btn-ctrl" onclick="clearAllHighlights()">Reset (All Normal Size)</button>
+    </div>
+
+    <div class="tree-container" id="scrollContainer">
+        <div class="tree-scroll-wrapper" id="zoomWrapper">
+            <div class="tree-branch" id="treeMain"></div>
+        </div>
+    </div>
+
+    <script>
+        const familyData = {
+          "name": "Parmeshwar Mehta",
+          "gender": "Male",
+          "image": "img/parmeshwar.jpg",
+          "children": [
+            {
+              "name": "Ramswaroop Prasad Mehta",
+              "gender": "Male",
+              "image": "img/ramswaroop.jpg",
+              "wife": { "name": "Maya Devi", "gender": "Female", "image": "img/maya.jpg" },
+              "children": [
+                {
+                  "name": "Hari Shankar Nonia",
+                  "gender": "Male",
+                  "image": "img/hari.jpg",
+                  "wife": { "name": "Parwati Devi", "gender": "Female", "image": "img/parwati.jpg" },
+                  "children": [
+                    { "name": "Ganesh", "gender": "Male", "image": "img/ganesh.jpg" },
+                    { "name": "Dinesh", "gender": "Male", "image": "img/dinesh.jpg" }
+                  ]
+                },
+                {
+                  "name": "Bhola Ramswaroop Nonia",
+                  "gender": "Male",
+                  "image": "img/bhola.jpg",
+                  "wife": { "name": "Lakshmi Devi", "gender": "Female", "image": "img/lakshmi.jpg" },
+                  "children": [
+                    {
+                      "name": "Rajesh Chauhan",
+                      "gender": "Male",
+                      "image": "img/rajesh.jpg",
+                      "wife": { "name": "Suhani Kumari", "gender": "Female", "image": "img/suhani.jpg" },
+                      "children": [
+                        { "name": "Rajesh Ka Beta", "gender": "Male", "image": "img/rajesh-beta.jpg" },
+                        { "name": "Rajesh Ki Beti", "gender": "Female", "image": "img/rajesh-beti.jpg" }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "name": "Suresh Nonia",
+                  "gender": "Male",
+                  "image": "img/suresh.jpg",
+                  "wife": { "name": "Sita Devi", "gender": "Female", "image": "img/sita.jpg" },
+                  "children": [
+                    { "name": "Saurab Kumar", "gender": "Male", "image": "img/saurab.jpg" },
+                    { "name": "Shekhar Kumar", "gender": "Male", "image": "img/shekhar.jpg" }
+                  ]
+                },
+                {
+                  "name": "Bablu Nonia",
+                  "gender": "Male",
+                  "image": "img/bablu.jpg",
+                  "wife": { "name": "Radha Devi", "gender": "Female", "image": "img/radha.jpg" },
+                  "children": [
+                    {
+                      "name": "Gautam Kumar",
+                      "gender": "Male",
+                      "image": "img/gautam.jpg",
+                      "wife": { "name": "Shobha Devi", "gender": "Female", "image": "img/shobha.jpg" },
+                      "children": [
+                        { "name": "Gaurav Kumar", "gender": "Male", "image": "img/gaurav.jpg" },
+                        { "name": "Lakki Kumar", "gender": "Male", "image": "img/lakki.jpg" },
+                        { "name": "Khushi Kumari", "gender": "Female", "image": "img/khushi.jpg" }
+                      ]
+                    },
+                    {
+                      "name": "Vikram Chauhan",
+                      "gender": "Male",
+                      "image": "img/vikram.jpg", 
+                      "wife": { "name": "Priyanka Kumari", "gender": "Female", "image": "img/priyanka.jpg" },
+                      "children": [
+                        { "name": "Priyanshi Kumari", "gender": "Female", "image": "img/priyanshi.jpg" }
+                      ]
+                    },
+                    { "name": "Vikas Kumar", "gender": "Male", "image": "img/vikas.jpg" }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Doosra Beta Mehta",
+              "gender": "Male",
+              "image": "img/doosra.jpg",
+              "children": []
+            }
+          ]
+        };
+
+        function makeBox(person) {
+            const boxClass = person.gender === 'Male' ? 'male-box' : 'female-box';
+            let imgTag = "";
+            if (person.image && person.image.trim() !== "") {
+                imgTag = `<img class="image-box" src="${person.image}" alt="${person.name}" onerror="this.style.display='none'">`;
+            }
+            
+            const webSafeId = "node-" + person.name.replace(/\s+/g, '-');
+
+            return `
+                <div class="ratio-box ${boxClass}" id="${webSafeId}" data-name="${person.name}" onclick="applyHighlightSystem('${person.name}')">
+                    <div class="image-container">
+                        <div class="avatar-fallback-head"></div>
+                        <div class="avatar-fallback-body"></div>
+                        ${imgTag}
+                    </div>
+                    <div class="profile-name">${person.name}</div>
+                </div>
+            `;
+        }
+
+        function buildRenderTree(node) {
+            const hasKids = node.children && node.children.length > 0;
+            const branchSafeId = "branch-" + node.name.replace(/\s+/g, '-');
+            const rowSafeId = "row-" + node.name.replace(/\s+/g, '-');
+            
+            let html = `<div class="node-branch-item" id="${branchSafeId}">`;
+            
+            html += `<div class="couple-box-wrapper">`;
+            html += `<div class="couple-row" id="${rowSafeId}">`; 
+            html += makeBox(node);
+            if(node.wife) {
+                html += makeBox(node.wife);
+            }
+            html += `</div>`; 
+            
+            if(hasKids) {
+                html += `<div class="stem-down"></div>`;
+                html += `<button class="toggle-btn" onclick="toggleChildren(this, event)">-</button>`;
+            }
+            html += `</div>`; 
+
+            if(hasKids) {
+                html += `<div class="nodes-container">`;
+                node.children.forEach(child => {
+                    html += buildRenderTree(child);
+                });
+                html += `</div>`;
+            }
+            
+            html += `</div>`;
+            return html;
+        }
+
+        function toggleChildren(btn, event) {
+            event.stopPropagation(); 
+            const coupleWrapper = btn.parentElement;
+            const itemBranch = coupleWrapper.parentElement;
+            const containerKids = itemBranch.querySelector('.nodes-container');
+            const stemLine = coupleWrapper.querySelector('.stem-down');
+            
+            if (containerKids) {
+                if (containerKids.classList.contains('collapsed-children')) {
+                    containerKids.classList.remove('collapsed-children');
+                    if(stemLine) stemLine.style.display = 'block';
+                    btn.innerText = "-";
+                } else {
+                    containerKids.classList.add('collapsed-children');
+                    if(stemLine) stemLine.style.display = 'none';
+                    btn.innerText = "+";
+                }
+            }
+        }
+
+        const scrollContainer = document.getElementById('scrollContainer');
+
+        // --- FIXED SMART CLICK FOCUS ENGINE ---
+        function applyHighlightSystem(targetName) {
+            let foundBox = document.querySelector(`.ratio-box[data-name="${targetName}"]`);
+            
+            if (foundBox) {
+                // Clear old states
+                document.querySelectorAll('.ratio-box').forEach(box => {
+                    box.classList.remove('box-focused-main', 'box-focused-child');
+                });
+                document.querySelectorAll('.couple-row').forEach(row => {
+                    row.classList.remove('row-focused-main', 'row-focused-child');
+                });
+                
+                // Main Couple Row aur uske dono boxes ko bada karo aur gap do
+                const mainCoupleRow = foundBox.parentElement;
+                mainCoupleRow.classList.add('row-focused-main');
+                mainCoupleRow.querySelectorAll('.ratio-box').forEach(coupleBox => {
+                    coupleBox.classList.add('box-focused-main');
+                });
+                
+                // [FIXED LAYER]: Main box ke structural wrapper element se deep find method
+                const nodeBranchItem = mainCoupleRow.closest('.node-branch-item');
+                if (nodeBranchItem) {
+                    const directNodesContainer = nodeBranchItem.querySelector('.nodes-container');
+                    if (directNodesContainer) {
+                        // Sirf direct children wale rows ko target karne ke liye selection lock syntax
+                        directNodesContainer.querySelectorAll(':scope > .node-branch-item > .couple-box-wrapper > .couple-row').forEach(childRow => {
+                            childRow.classList.add('row-focused-child');
+                            childRow.querySelectorAll('.ratio-box').forEach(cBox => {
+                                cBox.classList.add('box-focused-child');
+                            });
+                        });
+                    }
+                }
+
+                // Centered Scrolling Positioning Math
+                const containerRect = scrollContainer.getBoundingClientRect();
+                const elementRect = mainCoupleRow.getBoundingClientRect();
+
+                const relativeLeft = elementRect.left - containerRect.left + scrollContainer.scrollLeft;
+                const relativeTop = elementRect.top - containerRect.top + scrollContainer.scrollTop;
+
+                const targetLeft = relativeLeft - (containerRect.width / 2) + (elementRect.width / 2);
+                const targetTop = relativeTop - (containerRect.height / 2) + (elementRect.height / 2);
+
+                scrollContainer.scrollTo({ left: targetLeft, top: targetTop, behavior: 'smooth' });
+            }
+        }
+
+        function clearAllHighlights() {
+            document.querySelectorAll('.ratio-box').forEach(box => {
+                box.classList.remove('box-focused-main', 'box-focused-child');
+            });
+            document.querySelectorAll('.couple-row').forEach(row => {
+                row.classList.remove('row-focused-main', 'row-focused-child');
+            });
+        }
+
+        document.getElementById('treeMain').innerHTML = buildRenderTree(familyData);
+
+        // Auto initialization on load
+        window.addEventListener('load', () => {
+            setTimeout(() => { applyHighlightSystem('Bablu Nonia'); }, 500); 
+        });
+    </script>
+</body>
+</html>
